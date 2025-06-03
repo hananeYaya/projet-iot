@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Robot Controller</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Contrôle du Robot</h1>
+    <div class="controls">
+        <button onclick="sendCommand('wake')">Réveil</button>
+        <button onclick="sendCommand('forward')">Avancer</button>
+        <button onclick="sendCommand('left')">Gauche</button>
+        <button onclick="sendCommand('right')">Droite</button>
+        <button onclick="sendCommand('backward')">Reculer</button>
+        <button onclick="sendCommand('stop')">Stop</button>
+    </div>
+
+    <script>
+        function sendCommand(endpoint) {
+            fetch(endpoint, { method: 'POST' })
+                .then(res => res.json())
+                .then(data => console.log(data));
+        }
+    </script>
+</body>
+</html>
