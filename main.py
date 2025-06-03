@@ -50,32 +50,32 @@ app = Flask(__name__)
 def index():
     return render_template('index.html')
 
-@app.post('/reveiller')
+@app.route('/reveiller')
 def route_reveiller():
     wake_up()
     return jsonify({'status': 'Robot avance'})
 
-@app.post('/avancer')
+@app.route('/avancer')
 def route_avancer():
     #avancer()
     return jsonify({'status': 'Robot avance'})
 
-@app.post('/reculer')
+@app.route('/reculer')
 def route_reculer():
     #reculer()
     return jsonify({'status': 'Robot recule'})
 
-@app.post('/gauche')
+@app.route('/gauche')
 def route_gauche():
     #tourner_gauche()
     return jsonify({'status': 'Robot tourne à gauche'})
 
-@app.post('/droite')
+@app.route('/droite')
 def route_droite():
     #tourner_droite()
     return jsonify({'status': 'Robot tourne à droite'})
 
-@app.post('/stop')
+@app.route('/stop')
 def route_stop():
     #arreter()
     return jsonify({'status': 'Robot arrêté'})
