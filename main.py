@@ -44,6 +44,46 @@ def wake_up():
     while True:
         sleep(1)
 
+def move_forward():
+    # Étape 1 : le robot se lève (se met debout)
+    stand_angles = [40, 15, -40, -15, 60, 5, -60, -5]
+    my_dog.legs_move([stand_angles], speed=80)
+    my_dog.wait_all_done()
+
+    # Étape 2 : faire un pas en avant (alternance de jambes)
+    step_1 = [-30, 60, -20, -60, 80, -45, -80, 45]
+    step_2 = [-40, 50, -30, -50, 70, -40, -70, 40]
+
+    my_dog.legs_move([step_1], speed=85)
+    my_dog.wait_all_done()
+
+    my_dog.legs_move([step_2], speed=85)
+    my_dog.wait_all_done()
+
+    # Étape 3 : revenir en position debout
+    stand_angles = [40, 15, -40, -15, 60, 5, -60, -5]
+    my_dog.legs_move([stand_angles], speed=80)
+    my_dog.wait_all_done()
+
+def move_backward():
+    # Étape 1 : se mettre debout
+    stand_angles = [40, 15, -40, -15, 60, 5, -60, -5]
+    my_dog.legs_move([stand_angles], speed=80)
+    my_dog.wait_all_done()
+
+    # Étape 2 : faire un pas en arrière
+    step_1 = [-50, 40, -50, -30, 60, -30, -60, 30]
+    step_2 = [-40, 60, -30, -60, 80, -45, -80, 45]
+
+    my_dog.legs_move([step_1], speed=85)
+    my_dog.wait_all_done()
+
+    my_dog.legs_move([step_2], speed=85)
+    my_dog.wait_all_done()
+
+    # Étape 3 : revenir en position debout
+    my_dog.legs_move([stand_angles], speed=80)
+    my_dog.wait_all_done()
 
 app = Flask(__name__)
 @app.route('/')
@@ -57,12 +97,12 @@ def route_reveiller():
 
 @app.route('/avancer')
 def route_avancer():
-    #avancer()
+    move_forward()
     return jsonify({'status': 'Robot avance'})
 
 @app.route('/reculer')
 def route_reculer():
-    #reculer()
+    move_backward()
     return jsonify({'status': 'Robot recule'})
 
 @app.route('/gauche')
