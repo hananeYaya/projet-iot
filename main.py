@@ -15,9 +15,11 @@ from time import sleep
 from preset_actions import pant
 from preset_actions import body_twisting
 
+from flask import Flask, render_template, jsonify
+from threading import Thread
+
 my_dog = Pidog(head_init_angles=[0, 0, -30])
 sleep(1)
-
 
 
 def wake_up():
@@ -41,9 +43,57 @@ def wake_up():
     # hold
     my_dog.do_action('wag_tail', step_count=10, speed=30)
     my_dog.rgb_strip.set_mode('breath', 'pink', bps=0.5)
-    while True:
-        sleep(1)
+#    while True:
+#        sleep(1)
 
+def tourner_droite():
+    my_dog.do_action('turn_right', step_count=1, speed=60)
+    my_dog.wait_all_done()
+
+def tourner_gauche():
+    my_dog.do_action('turn_left', step_count=1, speed=60)
+    my_dog.wait_all_done()
+
+def move_forward():
+    # Étape 1 : le robot se lève (se met debout)
+    stand_angles = [40, 15, -40, -15, 60, 5, -60, -5]
+    my_dog.legs_move([stand_angles], speed=80)
+    my_dog.wait_all_done()
+
+    # Étape 2 : faire un pas en avant (alternance de jambes)
+    step_1 = [-30, 60, -20, -60, 80, -45, -80, 45]
+    step_2 = [-40, 50, -30, -50, 70, -40, -70, 40]
+
+    my_dog.legs_move([step_1], speed=85)
+    my_dog.wait_all_done()
+
+    my_dog.legs_move([step_2], speed=85)
+    my_dog.wait_all_done()
+
+    # Étape 3 : revenir en position debout
+    stand_angles = [40, 15, -40, -15, 60, 5, -60, -5]
+    my_dog.legs_move([stand_angles], speed=80)
+    my_dog.wait_all_done()
+
+def move_backward():
+    # Étape 1 : se mettre debout
+    stand_angles = [40, 15, -40, -15, 60, 5, -60, -5]
+    my_dog.legs_move([stand_angles], speed=80)
+    my_dog.wait_all_done()
+
+    # Étape 2 : faire un pas en arrière
+    step_1 = [-50, 40, -50, -30, 60, -30, -60, 30]
+    step_2 = [-40, 60, -30, -60, 80, -45, -80, 45]
+
+    my_dog.legs_move([step_1], speed=85)
+    my_dog.wait_all_done()
+
+    my_dog.legs_move([step_2], speed=85)
+    my_dog.wait_all_done()
+
+    # Étape 3 : revenir en position debout
+    my_dog.legs_move([stand_angles], speed=80)
+    my_dog.wait_all_done()
 
 app = Flask(__name__)
 @app.route('/')
@@ -52,26 +102,36 @@ def index():
 
 @app.route('/reveiller')
 def route_reveiller():
-    wake_up()
-    return jsonify({'status': 'Robot avance'})
+    #wake_up()
+    thread = Thread(target=wake_up)
+    thread.start()
+    return jsonify({'status': 'Robot éveillé'})
 
 @app.route('/avancer')
 def route_avancer():
     #avancer()
+    thread = Thread(target=move_forward)
+    thread.start()
     return jsonify({'status': 'Robot avance'})
 
 @app.route('/reculer')
 def route_reculer():
     #reculer()
+    thread = Thread(target=move_backward)
+    thread.start()
     return jsonify({'status': 'Robot recule'})
 
 @app.route('/gauche')
 def route_gauche():
     #tourner_gauche()
+    thread = Thread(target=tourner_gauche)
+    thread.start()
     return jsonify({'status': 'Robot tourne à gauche'})
 
 @app.route('/droite')
 def route_droite():
+    thread = Thread(target=tourner_droite)
+    thread.start()
     #tourner_droite()
     return jsonify({'status': 'Robot tourne à droite'})
 
