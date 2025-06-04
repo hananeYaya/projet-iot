@@ -1,19 +1,29 @@
-# Interface Flask pour contrôler le robot PiDog
+# This is a sample Python script.
+
+# Press Maj+F10 to execute it or replace it with your code.
+# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+
+from flask import Flask
+import datetime
+#from flask import Flask, render_template
+
+from flask import Flask, render_template, jsonify
+#from moteur import avancer, reculer, tourner_gauche, tourner_droite, arreter
+
+from pidog import Pidog
+from time import sleep
+from preset_actions import pant
+from preset_actions import body_twisting
 
 from flask import Flask, render_template, jsonify
 from threading import Thread
-from time import sleep
-import datetime
+import os, json
 
-from pidog import Pidog
-from preset_actions import pant, body_twisting
-
-# Initialisation du robot PiDog
 my_dog = Pidog(head_init_angles=[0, 0, -30])
 sleep(1)
 
+
 def wake_up():
-    """Fonction pour réveiller le robot avec une séquence d'animations"""
     # stretch
     my_dog.rgb_strip.set_mode('listen', color='yellow', bps=0.6, brightness=0.8)
     my_dog.do_action('stretch', speed=50)
@@ -34,184 +44,118 @@ def wake_up():
     # hold
     my_dog.do_action('wag_tail', step_count=10, speed=30)
     my_dog.rgb_strip.set_mode('breath', 'pink', bps=0.5)
+    while True:
+        sleep(1)
 
-def move_forward():
-    """Fonction pour faire avancer le robot"""
-    try:
-        my_dog.rgb_strip.set_mode('solid', color=[0, 255, 0], brightness=0.6)
-        my_dog.do_action('forward', step_count=3, speed=60)
-        my_dog.wait_all_done()
-        my_dog.do_action('sit', speed=50)
-        my_dog.rgb_strip.set_mode('breath', color=[255, 192, 203], bps=0.5)
-    except Exception as e:
-        print(f"Erreur lors de l'avancement: {e}")
+# Define actions
+actions = [
+    ['stand', 0, 50],
+    ['sit', -30, 50],
+    ['lie', 0, 20],
+    ['lie_with_hands_out', 0, 20],
+    ['trot', 0, 95],
+    ['forward', 0, 98],
+    ['backward', 0, 98],
+    ['turn_left', 0, 98],
+    ['turn_right', 0, 98],
+    ['doze_off', -30, 90],
+    ['stretch', 20, 20],
+    ['push_up', -30, 50],
+    ['shake_head', -1, 90],
+    ['tilting_head', -1, 60],
+    ['wag_tail', -1, 100],
+]
 
-def move_backward():
-    """Fonction pour faire reculer le robot"""
-    try:
-        my_dog.rgb_strip.set_mode('solid', color=[255, 0, 0], brightness=0.6)
-        my_dog.do_action('backward', step_count=3, speed=60)
-        my_dog.wait_all_done()
-        my_dog.do_action('sit', speed=50)
-        my_dog.rgb_strip.set_mode('breath', color=[255, 192, 203], bps=0.5)
-    except Exception as e:
-        print(f"Erreur lors du recul: {e}")
+actions_len = len(actions)
+STANDUP_ACTIONS = ['trot', 'forward', 'backward', 'turn_left', 'turn_right']
 
-def tourner_gauche():
-    """Fonction pour faire tourner le robot à gauche"""
-    try:
-        my_dog.rgb_strip.set_mode('solid', color=[0, 0, 255], brightness=0.6)
-        my_dog.do_action('turn_left', step_count=2, speed=60)
-        my_dog.wait_all_done()
-        my_dog.do_action('sit', speed=50)
-        my_dog.rgb_strip.set_mode('breath', color=[255, 192, 203], bps=0.5)
-    except Exception as e:
-        print(f"Erreur lors du virage à gauche: {e}")
+# Load sound effects
+sound_effects = []
+sound_path = os.path.abspath(os.path.join(os.path.dirname(__file__), './sounds'))
+os.chdir(sound_path)
+for name in os.listdir(sound_path):
+    sound_effects.append(name.split('.')[0])
+sound_effects.sort()
 
-def tourner_droite():
-    """Fonction pour faire tourner le robot à droite"""
-    try:
-        my_dog.rgb_strip.set_mode('solid', color=[255, 165, 0], brightness=0.6)
-        my_dog.do_action('turn_right', step_count=2, speed=60)
-        my_dog.wait_all_done()
-        my_dog.do_action('sit', speed=50)
-        my_dog.rgb_strip.set_mode('breath', color=[255, 192, 203], bps=0.5)
-    except Exception as e:
-        print(f"Erreur lors du virage à droite: {e}")
+sound_len = min(len(sound_effects), actions_len)
+sound_effects = sound_effects[:sound_len]
 
-def arreter():
-    """Fonction pour arrêter le robot en le laissant debout"""
-    try:
-        my_dog.do_action('stand', speed=80)
-        my_dog.head_move([[0, 0, -30]], speed=80)
-        my_dog.rgb_strip.set_mode('breath', color=[255, 192, 203], bps=0.5)
-        my_dog.wait_all_done()
-    except Exception as e:
-        print(f"Erreur lors de l'arrêt: {e}")
+# Globals
+last_index = 0
+last_head_pitch = 0
 
-# Initialisation de l'application Flask
+
+def do_function(index):
+    global last_index, last_head_pitch
+    my_dog.body_stop()
+
+    if index < 0:
+        return "Invalid action index", 400
+
+    if index < actions_len:
+        name, head_pitch_adjust, speed = actions[index]
+
+        if last_index < len(actions) and actions[last_index][0] == 'push_up':
+            last_head_pitch = 0
+            my_dog.do_action('lie', speed=60)
+
+        if name in STANDUP_ACTIONS and (last_index >= len(actions) or actions[last_index][0] not in STANDUP_ACTIONS):
+            last_head_pitch = 0
+            my_dog.do_action('stand', speed=60)
+
+        if head_pitch_adjust != -1:
+            last_head_pitch = head_pitch_adjust
+
+        my_dog.head_move_raw([[0, 0, last_head_pitch]], immediately=False, speed=60)
+        my_dog.do_action(name, step_count=10, speed=speed, pitch_comp=last_head_pitch)
+        last_index = index
+        return f"Action '{name}' executed.", 200
+
+    elif index < actions_len + sound_len:
+        sound_name = sound_effects[index - actions_len]
+        my_dog.speak(sound_name, volume=80)
+        last_index = index
+        return f"Sound '{sound_name}' played.", 200
+    else:
+        return "Index out of range", 400
+
+
+
+
 app = Flask(__name__)
-
 @app.route('/')
 def index():
-    """Page d'accueil avec l'interface de contrôle"""
     return render_template('index.html')
 
 @app.route('/reveiller')
 def route_reveiller():
-    """Route pour réveiller le robot"""
-    try:
-        thread = Thread(target=wake_up)
-        thread.daemon = True
-        thread.start()
-        return jsonify({'status': 'success', 'message': 'Robot éveillé'})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': f'Erreur: {str(e)}'})
+    wake_up()
+    return jsonify({'status': 'Robot éveillé'})
 
 @app.route('/avancer')
 def route_avancer():
-    """Route pour faire avancer le robot"""
-    try:
-        thread = Thread(target=move_forward)
-        thread.daemon = True
-        thread.start()
-        return jsonify({'status': 'success', 'message': 'Robot avance'})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': f'Erreur: {str(e)}'})
+    do_function(5)
+    return jsonify({'status': 'Robot avance'})
 
 @app.route('/reculer')
 def route_reculer():
-    """Route pour faire reculer le robot"""
-    try:
-        thread = Thread(target=move_backward)
-        thread.daemon = True
-        thread.start()
-        return jsonify({'status': 'success', 'message': 'Robot recule'})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': f'Erreur: {str(e)}'})
+    do_function(6)
+    return jsonify({'status': 'Robot recule'})
 
 @app.route('/gauche')
 def route_gauche():
-    """Route pour faire tourner le robot à gauche"""
-    try:
-        thread = Thread(target=tourner_gauche)
-        thread.daemon = True
-        thread.start()
-        return jsonify({'status': 'success', 'message': 'Robot tourne à gauche'})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': f'Erreur: {str(e)}'})
+    do_function(7)
+    return jsonify({'status': 'Robot tourne à gauche'})
 
 @app.route('/droite')
 def route_droite():
-    """Route pour faire tourner le robot à droite"""
-    try:
-        thread = Thread(target=tourner_droite)
-        thread.daemon = True
-        thread.start()
-        return jsonify({'status': 'success', 'message': 'Robot tourne à droite'})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': f'Erreur: {str(e)}'})
+    do_function(8)
+    return jsonify({'status': 'Robot tourne à droite'})
 
 @app.route('/stop')
 def route_stop():
-    """Route pour arrêter le robot"""
-    try:
-        thread = Thread(target=arreter)
-        thread.daemon = True
-        thread.start()
-        return jsonify({'status': 'success', 'message': 'Robot arrêté'})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': f'Erreur: {str(e)}'})
-
-# Routes supplémentaires pour compatibilité avec différentes interfaces
-@app.route('/forward')
-def route_forward():
-    """Route alternative pour avancer (compatibilité)"""
-    return route_avancer()
-
-@app.route('/backward')
-def route_backward():
-    """Route alternative pour reculer (compatibilité)"""
-    return route_reculer()
-
-@app.route('/left')
-def route_left():
-    """Route alternative pour tourner à gauche (compatibilité)"""
-    return route_gauche()
-
-@app.route('/right')
-def route_right():
-    """Route alternative pour tourner à droite (compatibilité)"""
-    return route_droite()
-    """Route pour obtenir le statut du robot"""
-    try:
-        return jsonify({
-            'status': 'success',
-            'robot_connected': True,
-            'timestamp': datetime.datetime.now().isoformat()
-        })
-    except Exception as e:
-        return jsonify({
-            'status': 'error',
-            'robot_connected': False,
-            'message': f'Erreur: {str(e)}'
-        })
-
-# Fonction de nettoyage à la fermeture
-def cleanup():
-    """Ferme proprement la connexion avec le robot"""
-    try:
-        my_dog.close()
-        print("Connexion PiDog fermée proprement")
-    except Exception as e:
-        print(f"Erreur lors de la fermeture: {e}")
+    do_function(2)
+    return jsonify({'status': 'Robot arrêté'})
 
 if __name__ == '__main__':
-    try:
-        print("Démarrage du serveur Flask pour PiDog...")
-        print("Interface accessible sur http://localhost:8080")
-        app.run(host='0.0.0.0', port=8080, debug=False)
-    except KeyboardInterrupt:
-        print("\nArrêt du serveur...")
-    finally:
-        cleanup()
+    app.run(host='0.0.0.0', port=8080)

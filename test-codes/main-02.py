@@ -45,6 +45,78 @@ def wake_up():
     my_dog.rgb_strip.set_mode('breath', 'pink', bps=0.5)
 #    while True:
 #        sleep(1)
+# Define actions
+actions = [
+    ['stand', 0, 50],
+    ['sit', -30, 50],
+    ['lie', 0, 20],
+    ['lie_with_hands_out', 0, 20],
+    ['trot', 0, 95],
+    ['forward', 0, 98],
+    ['backward', 0, 98],
+    ['turn_left', 0, 98],
+    ['turn_right', 0, 98],
+    ['doze_off', -30, 90],
+    ['stretch', 20, 20],
+    ['push_up', -30, 50],
+    ['shake_head', -1, 90],
+    ['tilting_head', -1, 60],
+    ['wag_tail', -1, 100],
+]
+
+actions_len = len(actions)
+STANDUP_ACTIONS = ['trot', 'forward', 'backward', 'turn_left', 'turn_right']
+
+# Load sound effects
+sound_effects = []
+sound_path = os.path.abspath(os.path.join(os.path.dirname(__file__), './sounds'))
+os.chdir(sound_path)
+for name in os.listdir(sound_path):
+    sound_effects.append(name.split('.')[0])
+sound_effects.sort()
+
+sound_len = min(len(sound_effects), actions_len)
+sound_effects = sound_effects[:sound_len]
+
+# Globals
+last_index = 0
+last_head_pitch = 0
+
+
+def do_function(index):
+    global last_index, last_head_pitch
+    my_dog.body_stop()
+
+    if index < 0:
+        return "Invalid action index", 400
+
+    if index < actions_len:
+        name, head_pitch_adjust, speed = actions[index]
+
+        if last_index < len(actions) and actions[last_index][0] == 'push_up':
+            last_head_pitch = 0
+            my_dog.do_action('lie', speed=60)
+
+        if name in STANDUP_ACTIONS and (last_index >= len(actions) or actions[last_index][0] not in STANDUP_ACTIONS):
+            last_head_pitch = 0
+            my_dog.do_action('stand', speed=60)
+
+        if head_pitch_adjust != -1:
+            last_head_pitch = head_pitch_adjust
+
+        my_dog.head_move_raw([[0, 0, last_head_pitch]], immediately=False, speed=60)
+        my_dog.do_action(name, step_count=10, speed=speed, pitch_comp=last_head_pitch)
+        last_index = index
+        return f"Action '{name}' executed.", 200
+
+    elif index < actions_len + sound_len:
+        sound_name = sound_effects[index - actions_len]
+        my_dog.speak(sound_name, volume=80)
+        last_index = index
+        return f"Sound '{sound_name}' played.", 200
+    else:
+        return "Index out of range", 400
+
 
 
 
@@ -62,6 +134,7 @@ def route_reveiller():
 
 @app.route('/avancer')
 def route_avancer():
+    do_function(index)
     #avancer()
     thread = Thread(target=move_forward)
     thread.start()
@@ -92,12 +165,6 @@ def route_droite():
 def route_stop():
     #arreter()
     return jsonify({'status': 'Robot arrêté'})
-
-#@app.route('/')
-#def index():
-#    return render_template('index.html')
-    #return 'Web App with Python Flask!'
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
