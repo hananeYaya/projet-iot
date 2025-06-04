@@ -1,27 +1,30 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Robot Controller</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+  </head>
+  <body>
     <h1>Contrôle du Robot</h1>
     <div class="controls">
-        <a href="/reveiller" onclick="sendCommand('wake')">Réveil</a>
-        <a href="/avancer" onclick="sendCommand('forward')">Avancer</a>
-        <a href="/gauche" onclick="sendCommand('left')">Gauche</a>
-        <a href="/droite" onclick="sendCommand('right')">Droite</a>
-        <a href="/reculer" onclick="sendCommand('backward')">Reculer</a>
-        <a onclick="sendCommand('stop')">Stop</a>
+      <a href="/reveiller" onclick="sendCommand('wake')">Réveil</a>
+      <a href="/avancer" onclick="sendCommand('forward')">Avancer</a>
+      <a href="/gauche" onclick="sendCommand('left')">Gauche</a>
+      <a href="/droite" onclick="sendCommand('right')">Droite</a>
+      <a href="/reculer" onclick="sendCommand('backward')">Reculer</a>
+      <a onclick="sendCommand('stop')">Stop</a>
     </div>
 
     <script>
-        function sendCommand(endpoint) {
-            fetch(endpoint, { method: 'POST' })
-                .then(res => res.json())
-                .then(data => console.log(data));
-        }
+      function sendCommand(endpoint) {
+        fetch(endpoint, { method: "POST" })
+          .then((res) => res.json())
+          .then((data) => console.log(data));
+      }
     </script>
-</body>
+  </body>
 </html>
