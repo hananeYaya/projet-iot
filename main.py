@@ -1,28 +1,19 @@
-# This is a sample Python script.
-
-# Press Maj+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
-from flask import Flask
-import datetime
-#from flask import Flask, render_template
-
-from flask import Flask, render_template, jsonify
-#from moteur import avancer, reculer, tourner_gauche, tourner_droite, arreter
-
-from pidog import Pidog
-from time import sleep
-from preset_actions import pant
-from preset_actions import body_twisting
+# Interface Flask pour contrôler le robot PiDog
 
 from flask import Flask, render_template, jsonify
 from threading import Thread
+from time import sleep
+import datetime
 
+from pidog import Pidog
+from preset_actions import pant, body_twisting
+
+# Initialisation du robot PiDog
 my_dog = Pidog(head_init_angles=[0, 0, -30])
 sleep(1)
 
-
 def wake_up():
+    """Fonction pour réveiller le robot avec une séquence d'animations"""
     # stretch
     my_dog.rgb_strip.set_mode('listen', color='yellow', bps=0.6, brightness=0.8)
     my_dog.do_action('stretch', speed=50)
@@ -43,108 +34,166 @@ def wake_up():
     # hold
     my_dog.do_action('wag_tail', step_count=10, speed=30)
     my_dog.rgb_strip.set_mode('breath', 'pink', bps=0.5)
-#    while True:
-#        sleep(1)
-
-def tourner_droite():
-    my_dog.do_action('turn_right', step_count=1, speed=60)
-    my_dog.wait_all_done()
-
-def tourner_gauche():
-    my_dog.do_action('turn_left', step_count=1, speed=60)
-    my_dog.wait_all_done()
 
 def move_forward():
-    # Étape 1 : le robot se lève (se met debout)
-    stand_angles = [40, 15, -40, -15, 60, 5, -60, -5]
-    my_dog.legs_move([stand_angles], speed=80)
-    my_dog.wait_all_done()
-
-    # Étape 2 : faire un pas en avant (alternance de jambes)
-    step_1 = [-30, 60, -20, -60, 80, -45, -80, 45]
-    step_2 = [-40, 50, -30, -50, 70, -40, -70, 40]
-
-    my_dog.legs_move([step_1], speed=85)
-    my_dog.wait_all_done()
-
-    my_dog.legs_move([step_2], speed=85)
-    my_dog.wait_all_done()
-
-    # Étape 3 : revenir en position debout
-    stand_angles = [40, 15, -40, -15, 60, 5, -60, -5]
-    my_dog.legs_move([stand_angles], speed=80)
-    my_dog.wait_all_done()
+    """Fonction pour faire avancer le robot"""
+    try:
+        my_dog.rgb_strip.set_mode('solid', color='green', brightness=0.6)
+        my_dog.do_action('forward', step_count=4, speed=60)
+        my_dog.wait_all_done()
+        my_dog.do_action('sit', speed=50)
+        my_dog.rgb_strip.set_mode('breath', 'pink', bps=0.5)
+    except Exception as e:
+        print(f"Erreur lors de l'avancement: {e}")
 
 def move_backward():
-    # Étape 1 : se mettre debout
-    stand_angles = [40, 15, -40, -15, 60, 5, -60, -5]
-    my_dog.legs_move([stand_angles], speed=80)
-    my_dog.wait_all_done()
+    """Fonction pour faire reculer le robot"""
+    try:
+        my_dog.rgb_strip.set_mode('solid', color='red', brightness=0.6)
+        my_dog.do_action('backward', step_count=4, speed=60)
+        my_dog.wait_all_done()
+        my_dog.do_action('sit', speed=50)
+        my_dog.rgb_strip.set_mode('breath', 'pink', bps=0.5)
+    except Exception as e:
+        print(f"Erreur lors du recul: {e}")
 
-    # Étape 2 : faire un pas en arrière
-    step_1 = [-50, 40, -50, -30, 60, -30, -60, 30]
-    step_2 = [-40, 60, -30, -60, 80, -45, -80, 45]
+def tourner_gauche():
+    """Fonction pour faire tourner le robot à gauche"""
+    try:
+        my_dog.rgb_strip.set_mode('solid', color='blue', brightness=0.6)
+        my_dog.do_action('turn_left', step_count=2, speed=60)
+        my_dog.wait_all_done()
+        my_dog.do_action('sit', speed=50)
+        my_dog.rgb_strip.set_mode('breath', 'pink', bps=0.5)
+    except Exception as e:
+        print(f"Erreur lors du virage à gauche: {e}")
 
-    my_dog.legs_move([step_1], speed=85)
-    my_dog.wait_all_done()
+def tourner_droite():
+    """Fonction pour faire tourner le robot à droite"""
+    try:
+        my_dog.rgb_strip.set_mode('solid', color='orange', brightness=0.6)
+        my_dog.do_action('turn_right', step_count=2, speed=60)
+        my_dog.wait_all_done()
+        my_dog.do_action('sit', speed=50)
+        my_dog.rgb_strip.set_mode('breath', 'pink', bps=0.5)
+    except Exception as e:
+        print(f"Erreur lors du virage à droite: {e}")
 
-    my_dog.legs_move([step_2], speed=85)
-    my_dog.wait_all_done()
+def arreter():
+    """Fonction pour arrêter le robot en le laissant debout"""
+    try:
+        my_dog.do_action('stand', speed=80)
+        my_dog.head_move([[0, 0, -30]], speed=80)
+        my_dog.rgb_strip.set_mode('breath', 'pink', bps=0.5)
+        my_dog.wait_all_done()
+    except Exception as e:
+        print(f"Erreur lors de l'arrêt: {e}")
 
-    # Étape 3 : revenir en position debout
-    my_dog.legs_move([stand_angles], speed=80)
-    my_dog.wait_all_done()
-
+# Initialisation de l'application Flask
 app = Flask(__name__)
+
 @app.route('/')
 def index():
+    """Page d'accueil avec l'interface de contrôle"""
     return render_template('index.html')
 
 @app.route('/reveiller')
 def route_reveiller():
-    #wake_up()
-    thread = Thread(target=wake_up)
-    thread.start()
-    return jsonify({'status': 'Robot éveillé'})
+    """Route pour réveiller le robot"""
+    try:
+        thread = Thread(target=wake_up)
+        thread.daemon = True
+        thread.start()
+        return jsonify({'status': 'success', 'message': 'Robot éveillé'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Erreur: {str(e)}'})
 
 @app.route('/avancer')
 def route_avancer():
-    #avancer()
-    thread = Thread(target=move_forward)
-    thread.start()
-    return jsonify({'status': 'Robot avance'})
+    """Route pour faire avancer le robot"""
+    try:
+        thread = Thread(target=move_forward)
+        thread.daemon = True
+        thread.start()
+        return jsonify({'status': 'success', 'message': 'Robot avance'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Erreur: {str(e)}'})
 
 @app.route('/reculer')
 def route_reculer():
-    #reculer()
-    thread = Thread(target=move_backward)
-    thread.start()
-    return jsonify({'status': 'Robot recule'})
+    """Route pour faire reculer le robot"""
+    try:
+        thread = Thread(target=move_backward)
+        thread.daemon = True
+        thread.start()
+        return jsonify({'status': 'success', 'message': 'Robot recule'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Erreur: {str(e)}'})
 
 @app.route('/gauche')
 def route_gauche():
-    #tourner_gauche()
-    thread = Thread(target=tourner_gauche)
-    thread.start()
-    return jsonify({'status': 'Robot tourne à gauche'})
+    """Route pour faire tourner le robot à gauche"""
+    try:
+        thread = Thread(target=tourner_gauche)
+        thread.daemon = True
+        thread.start()
+        return jsonify({'status': 'success', 'message': 'Robot tourne à gauche'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Erreur: {str(e)}'})
 
 @app.route('/droite')
 def route_droite():
-    thread = Thread(target=tourner_droite)
-    thread.start()
-    #tourner_droite()
-    return jsonify({'status': 'Robot tourne à droite'})
+    """Route pour faire tourner le robot à droite"""
+    try:
+        thread = Thread(target=tourner_droite)
+        thread.daemon = True
+        thread.start()
+        return jsonify({'status': 'success', 'message': 'Robot tourne à droite'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Erreur: {str(e)}'})
 
 @app.route('/stop')
 def route_stop():
-    #arreter()
-    return jsonify({'status': 'Robot arrêté'})
+    """Route pour arrêter le robot"""
+    try:
+        thread = Thread(target=arreter)
+        thread.daemon = True
+        thread.start()
+        return jsonify({'status': 'success', 'message': 'Robot arrêté'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Erreur: {str(e)}'})
 
-#@app.route('/')
-#def index():
-#    return render_template('index.html')
-    #return 'Web App with Python Flask!'
+@app.route('/status')
+def route_status():
+    """Route pour obtenir le statut du robot"""
+    try:
+        return jsonify({
+            'status': 'success',
+            'robot_connected': True,
+            'timestamp': datetime.datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'robot_connected': False,
+            'message': f'Erreur: {str(e)}'
+        })
 
+# Fonction de nettoyage à la fermeture
+def cleanup():
+    """Ferme proprement la connexion avec le robot"""
+    try:
+        my_dog.close()
+        print("Connexion PiDog fermée proprement")
+    except Exception as e:
+        print(f"Erreur lors de la fermeture: {e}")
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+    try:
+        print("Démarrage du serveur Flask pour PiDog...")
+        print("Interface accessible sur http://localhost:8080")
+        app.run(host='0.0.0.0', port=8080, debug=False)
+    except KeyboardInterrupt:
+        print("\nArrêt du serveur...")
+    finally:
+        cleanup()
