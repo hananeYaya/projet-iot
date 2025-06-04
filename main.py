@@ -38,44 +38,44 @@ def wake_up():
 def move_forward():
     """Fonction pour faire avancer le robot"""
     try:
-        my_dog.rgb_strip.set_mode('solid', color='green', brightness=0.6)
-        my_dog.do_action('forward', step_count=4, speed=60)
+        my_dog.rgb_strip.set_mode('solid', color=[0, 255, 0], brightness=0.6)
+        my_dog.do_action('forward', step_count=3, speed=60)
         my_dog.wait_all_done()
         my_dog.do_action('sit', speed=50)
-        my_dog.rgb_strip.set_mode('breath', 'pink', bps=0.5)
+        my_dog.rgb_strip.set_mode('breath', color=[255, 192, 203], bps=0.5)
     except Exception as e:
         print(f"Erreur lors de l'avancement: {e}")
 
 def move_backward():
     """Fonction pour faire reculer le robot"""
     try:
-        my_dog.rgb_strip.set_mode('solid', color='red', brightness=0.6)
-        my_dog.do_action('backward', step_count=4, speed=60)
+        my_dog.rgb_strip.set_mode('solid', color=[255, 0, 0], brightness=0.6)
+        my_dog.do_action('backward', step_count=3, speed=60)
         my_dog.wait_all_done()
         my_dog.do_action('sit', speed=50)
-        my_dog.rgb_strip.set_mode('breath', 'pink', bps=0.5)
+        my_dog.rgb_strip.set_mode('breath', color=[255, 192, 203], bps=0.5)
     except Exception as e:
         print(f"Erreur lors du recul: {e}")
 
 def tourner_gauche():
     """Fonction pour faire tourner le robot à gauche"""
     try:
-        my_dog.rgb_strip.set_mode('solid', color='blue', brightness=0.6)
+        my_dog.rgb_strip.set_mode('solid', color=[0, 0, 255], brightness=0.6)
         my_dog.do_action('turn_left', step_count=2, speed=60)
         my_dog.wait_all_done()
         my_dog.do_action('sit', speed=50)
-        my_dog.rgb_strip.set_mode('breath', 'pink', bps=0.5)
+        my_dog.rgb_strip.set_mode('breath', color=[255, 192, 203], bps=0.5)
     except Exception as e:
         print(f"Erreur lors du virage à gauche: {e}")
 
 def tourner_droite():
     """Fonction pour faire tourner le robot à droite"""
     try:
-        my_dog.rgb_strip.set_mode('solid', color='orange', brightness=0.6)
+        my_dog.rgb_strip.set_mode('solid', color=[255, 165, 0], brightness=0.6)
         my_dog.do_action('turn_right', step_count=2, speed=60)
         my_dog.wait_all_done()
         my_dog.do_action('sit', speed=50)
-        my_dog.rgb_strip.set_mode('breath', 'pink', bps=0.5)
+        my_dog.rgb_strip.set_mode('breath', color=[255, 192, 203], bps=0.5)
     except Exception as e:
         print(f"Erreur lors du virage à droite: {e}")
 
@@ -84,7 +84,7 @@ def arreter():
     try:
         my_dog.do_action('stand', speed=80)
         my_dog.head_move([[0, 0, -30]], speed=80)
-        my_dog.rgb_strip.set_mode('breath', 'pink', bps=0.5)
+        my_dog.rgb_strip.set_mode('breath', color=[255, 192, 203], bps=0.5)
         my_dog.wait_all_done()
     except Exception as e:
         print(f"Erreur lors de l'arrêt: {e}")
@@ -163,8 +163,26 @@ def route_stop():
     except Exception as e:
         return jsonify({'status': 'error', 'message': f'Erreur: {str(e)}'})
 
-@app.route('/status')
-def route_status():
+# Routes supplémentaires pour compatibilité avec différentes interfaces
+@app.route('/forward')
+def route_forward():
+    """Route alternative pour avancer (compatibilité)"""
+    return route_avancer()
+
+@app.route('/backward')
+def route_backward():
+    """Route alternative pour reculer (compatibilité)"""
+    return route_reculer()
+
+@app.route('/left')
+def route_left():
+    """Route alternative pour tourner à gauche (compatibilité)"""
+    return route_gauche()
+
+@app.route('/right')
+def route_right():
+    """Route alternative pour tourner à droite (compatibilité)"""
+    return route_droite()
     """Route pour obtenir le statut du robot"""
     try:
         return jsonify({
